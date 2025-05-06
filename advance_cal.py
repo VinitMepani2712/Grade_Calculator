@@ -134,8 +134,11 @@ for row in results:
     with st.expander(f"🔍 {student}'s Breakdown"):
         detail = row.get('Details', [])
         detail_df = pd.DataFrame(detail)
+
         if not detail_df.empty and 'Category' in detail_df.columns:
-            detail_df = detail_df.round(2)
+            for col in ['Raw','Max','Weight','Points Earned']:
+                detail_df[col] = detail_df[col].apply(lambda x: f"{float(x):.2f}")
             st.table(detail_df.set_index('Category'))
         else:
             st.write("No detail rows to display.")
+
