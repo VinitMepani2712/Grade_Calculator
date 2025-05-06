@@ -7,9 +7,9 @@ st.set_page_config(
 )
 
 st.title("🎓 Grade Calculator")
-st.markdown("Upload either a **long** or **wide** CSV; " \
-"tweak weights in the sidebar; " \
-"see per-student breakdowns.")
+st.markdown("Upload either a **long** or **wide** CSV; ")
+st.markdown("tweak weights in the sidebar; ")
+st.markdown("see per-student breakdowns.")
 
 uploaded = st.file_uploader("Upload grades CSV", type="csv")
 if not uploaded:
