@@ -1,17 +1,17 @@
 # Grade Calculator Streamlit App
 
-A simple, interactive Streamlit application to calculate weighted grades from a CSV file. Supports both "long" and "wide" CSV formats, adjustable category weights, and separate handling of extra credit.
+A simple, interactive Streamlit application to calculate weighted grades from a CSV file. Supports both "long" and "wide" CSV formats, adjustable category weights, and user‑entered category maximums.
 
 ---
 
 ## Features
 
 - 📤 **CSV Upload**: Upload either:
-  - **Long form**: rows with `Name`, `Category`, `raw`, `maximum` columns.
-  - **Wide form**: one row per student with `<Category>_raw` and `<Category>_maximum` columns.
-- ⚖️ **Adjustable Weights**: Set per-category weights via sidebar controls.
-- 📊 **Automatic Totals**: Computes core total, extra credit, and overall percentage.
-- 🔍 **Per-Student Breakdown**: Expandable detail tables showing raw scores, maximums, weights, and points earned.
+  - **Long form**: rows with `Name`, `Category`, and `raw` score columns (maximums are set in the sidebar).
+  - **Wide form**: one row per student with `<Category>_raw` columns (maximums set in the sidebar).
+- ⚖️ **Adjustable Weights**: Set per‑category weights via sidebar controls.
+- 📊 **Automatic Totals**: Computes core total, extra credit, and overall percentage based on user‑provided maximums.
+- 🔍 **Per‑Student Breakdown**: Expandable detail tables showing raw scores, weights, and points earned.
 
 ---
 
@@ -53,10 +53,10 @@ A simple, interactive Streamlit application to calculate weighted grades from a 
 2. **Open** the URL shown in your terminal (usually `http://localhost:8501`).
 
 3. **Upload** your grades CSV:
-   - For **long** format, ensure columns: `Name, Category, raw, maximum`.  
-   - For **wide** format, ensure at least one `<Category>_raw` and matching `<Category>_maximum` column.
+   - For **long** format, ensure columns: `Name, Category, raw`.  
+   - For **wide** format, ensure `<Category>_raw` columns for each category.
 
-4. **Adjust weights** in the sidebar as needed.
+4. **Adjust weights** and **enter total points** for each category in the sidebar.
 
 5. **View** the summary table and expand student details for a full breakdown.
 
@@ -66,20 +66,45 @@ A simple, interactive Streamlit application to calculate weighted grades from a 
 
 ### Long Form
 
-| Name  | Category        | raw    | maximum |
-|-------|-----------------|--------|---------|
-| Vinit | HW First Half   | 800    | 800     |
-| Vinit | Quiz First Half | 75     | 75      |
-| ...   | ...             | ...    | ...     |
+Rows with the following columns:
+
+| Name  | Category | raw |
+|-------|----------|-----|
+| Alice | HW1      | 85  |
+| Alice | Quiz1    | 18  |
+| Bob   | Midterm  | 79  |
+
+**Example CSV:**
+```csv
+Name,Category,raw
+Alice,HW1,85
+Alice,Quiz1,18
+Bob,Midterm,79
+```
 
 ### Wide Form
 
-| Name  | HW First Half_raw | HW First Half_maximum | Quiz First Half_raw | ... |
-|-------|-------------------|-----------------------|---------------------|-----|
-| Vinit | 800               | 800                   | 75                  | ... |
+One row per student with `<Category>_raw` columns:
+
+| Name  | HW1_raw | Quiz1_raw | Midterm_raw |
+|-------|---------|-----------|-------------|
+| Alice | 85      | 18        | 88          |
+| Bob   | 92      | 16        | 79          |
+
+**Example CSV:**
+```csv
+Name,HW1_raw,Quiz1_raw,Midterm_raw
+Alice,85,18,88
+Bob,92,16,79
+```
 
 ---
 
+## Category Maximums
+
+After uploading your CSV, use the **Category Maximums** section in the sidebar to enter the total possible points for each category.
+
+---
 
 ## License
 
