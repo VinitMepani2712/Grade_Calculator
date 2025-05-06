@@ -118,7 +118,7 @@ else:
             'Details':          detail
         })
 
-summary = pd.DataFrame(results).drop(columns=['Details'], errors='ignore')
+summary = pd.DataFrame(results).drop(columns=['Details'])
 st.subheader("📋 Summary")
 st.dataframe(summary.set_index('Name'))
 
