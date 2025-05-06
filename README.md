@@ -68,38 +68,18 @@ A simple, interactive Streamlit application to calculate weighted grades from a 
 
 | Name  | Category        | raw    | maximum |
 |-------|-----------------|--------|---------|
-| Vinit | HW First Half   | 742    | 800     |
-| Vinit | Quiz First Half | 54.45  | 75      |
+| Vinit | HW First Half   | 800    | 800     |
+| Vinit | Quiz First Half | 75     | 75      |
 | ...   | ...             | ...    | ...     |
 
 ### Wide Form
 
 | Name  | HW First Half_raw | HW First Half_maximum | Quiz First Half_raw | ... |
 |-------|-------------------|-----------------------|---------------------|-----|
-| Vinit | 742               | 800                   | 54.45               | ... |
+| Vinit | 800               | 800                   | 75                  | ... |
 
 ---
 
-## Project Structure
-
-```
-grade-calculator/
-├── app.py         # Main Streamlit application
-├── README.md      # This file
-├── requirements.txt   # (optional) pinned dependencies
-└── examples/
-    ├── long_grades.csv
-    └── wide_grades.csv
-```
-
----
-
-## Customization
-
-- To add or remove categories, update the `default_weights` dictionary in `app.py` and restart the app.
-- To change layout or styling, modify the Streamlit commands in `app.py`.
-
----
 
 ## License
 
