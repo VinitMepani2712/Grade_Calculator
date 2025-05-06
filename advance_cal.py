@@ -100,7 +100,7 @@ for cat in active:
             key=f"maxinp_{cat}"
         )
 
-core_denominator = sum(w for c, w in weights.items() if c.lower() != 'extra credit')
+total_point = sum(w for c, w in weights.items() if c.lower() != 'extra credit')
 
 def weighted_score(raw, maximum, weight):
     return (raw / maximum) * weight if maximum else 0
@@ -110,7 +110,7 @@ results = []
 # compute student results
 if mode == 'long':
     for student, grp in df.groupby(name_col):
-        core_total = ec_total = 0.0
+        point_achieved = ec_total = 0.0
         detail = []
         for _, row in grp.iterrows():
             cat = row[cat_col]
@@ -123,7 +123,7 @@ if mode == 'long':
             if cat.lower() == 'extra credit':
                 ec_total += pts
             else:
-                core_total += pts
+                point_achieved += pts
             detail.append({
                 'Category':      cat,
                 'Raw':           raw,
@@ -131,19 +131,19 @@ if mode == 'long':
                 'Weight':        w,
                 'Points Earned': round(pts, 2)
             })
-        overall_pct = (core_total / core_denominator * 100) if core_denominator else 0
+        overall_pct = (point_achieved / total_point * 100) if total_point else 0
         results.append({
             'Name':             student,
-            'Core Total':       round(core_total, 2),
+            'Point Achieved ':       round(point_achieved, 2),
             'Extra Credit':     round(ec_total, 2),
-            'Core Denominator': core_denominator,
+            'Total Point': total_point,
             'Overall % (core)': f"{overall_pct:.2f}%",
             'Details':          detail
         })
 else:
     for _, row in df.iterrows():
         student = row.get(name_col, '')
-        core_total = ec_total = 0.0
+        point_achieved = ec_total = 0.0
         detail = []
         for cat in active:
             raw_col_name = f"{cat}_raw"
@@ -159,7 +159,7 @@ else:
             if cat.lower() == 'extra credit':
                 ec_total += pts
             else:
-                core_total += pts
+                point_achieved += pts
             detail.append({
                 'Category':      cat,
                 'Raw':           raw,
@@ -167,12 +167,12 @@ else:
                 'Weight':        w,
                 'Points Earned': round(pts, 2)
             })
-        overall_pct = (core_total / core_denominator * 100) if core_denominator else 0
+        overall_pct = (point_achieved / total_point * 100) if total_point else 0
         results.append({
             'Name':             student,
-            'Core Total':       round(core_total, 2),
+            'Point Achieved':       round(point_achieved, 2),
             'Extra Credit':     round(ec_total, 2),
-            'Core Denominator': core_denominator,
+            'Total Point': total_point,
             'Overall % (core)': f"{overall_pct:.2f}%",
             'Details':          detail
         })
