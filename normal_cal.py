@@ -12,9 +12,9 @@ weights = {
     'HW Second Half': 50,
     'Quiz Second Half': 60,
     'Midterm II': 90,
-    'Project': 30,
-    'Final': 180,
-    'Extra Credit': 40,
+    # 'Project': 30,
+    # 'Final': 180,
+    # 'Extra Credit': 40,
 }
 
 categories = list(weights.keys())
@@ -37,4 +37,4 @@ for _, row in df.iterrows():
         print(f"{category}: {pts:.2f} pts")
     
     print(f"\nTotal out of 600: {total:.2f} pts")
-    print(f"Overall %: {total / 600 * 100:.2f}%")
+    print(f"Overall %: {total / 390 * 100:.2f}%")
