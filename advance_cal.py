@@ -89,7 +89,7 @@ else:
         if f"{cat}_raw" in df.columns and f"{cat}_maximum" in df.columns
     ]
     for _, row in df.iterrows():
-        student = row['Name']
+        student = row.get('Name', '')
         core_total = ec_total = 0.0
         detail = []
         for cat in cats_present:
@@ -118,11 +118,23 @@ else:
             'Details':          detail
         })
 
-summary = pd.DataFrame(results).drop(columns=['Details'])
+df_res  = pd.DataFrame(results)
+summary = df_res.drop(columns=['Details'], errors='ignore')
+
 st.subheader("📋 Summary")
-st.dataframe(summary.set_index('Name'))
+if 'Name' in summary.columns:
+    summary = summary.set_index('Name')
+else:
+    st.warning("⚠️ Couldn’t find a ‘Name’ column in summary; showing all columns instead.")
+
+st.dataframe(summary)
 
 for row in results:
-    with st.expander(f"🔍 {row['Name']}'s Breakdown"):
-        detail_df = pd.DataFrame(row['Details'])
-        st.table(detail_df.set_index('Category'))
+    student = row.get('Name', '')
+    with st.expander(f"🔍 {student}'s Breakdown"):
+        detail = row.get('Details', [])
+        detail_df = pd.DataFrame(detail)
+        if not detail_df.empty and 'Category' in detail_df.columns:
+            st.table(detail_df.set_index('Category'))
+        else:
+            st.write("No detail rows to display.")
