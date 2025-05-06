@@ -11,7 +11,6 @@ st.markdown("Upload either a **long** or **wide** CSV;")
 st.markdown("tweak weights & maximums in the sidebar;")
 st.markdown("see per-student breakdowns.")
 
-# --- Upload & read ---
 uploaded = st.file_uploader("Upload grades CSV", type="csv")
 if not uploaded:
     st.info("Awaiting CSV upload…")
@@ -19,8 +18,7 @@ if not uploaded:
 
 df = pd.read_csv(uploaded)
 
-# --- Detect long vs wide ---
-long_cols = {"Name", "Category", "raw"}  # no longer require 'maximum'
+long_cols = {"Name", "Category", "raw"}  
 if long_cols.issubset(df.columns):
     mode = "long"
 elif any(col.endswith("_raw") for col in df.columns):
@@ -33,7 +31,6 @@ else:
     )
     st.stop()
 
-# --- Column mapping ---
 with st.sidebar.expander("🔧 Column mapping", expanded=False):
     if mode == "long":
         name_col = st.selectbox("Student name column", df.columns, index=df.columns.get_loc("Name"))
@@ -46,13 +43,11 @@ with st.sidebar.expander("🔧 Column mapping", expanded=False):
             index=(df.columns.get_loc("Name") if "Name" in df.columns else 0)
         )
 
-# --- Build list of file categories ---
 if mode == "long":
     file_cats = sorted(df[cat_col].dropna().unique())
 else:
     file_cats = sorted(cat[:-4] for cat in df.columns if cat.endswith("_raw"))
 
-# --- Custom categories ---
 if "custom_cats" not in st.session_state:
     st.session_state["custom_cats"] = []
 with st.sidebar.expander("➕ Add a custom category", expanded=False):
@@ -67,7 +62,6 @@ with st.sidebar.expander("➕ Add a custom category", expanded=False):
 
 all_categories = file_cats + st.session_state["custom_cats"]
 
-# --- Select active categories ---
 active = st.sidebar.multiselect(
     "✅ Active categories",
     options=all_categories,
@@ -87,11 +81,9 @@ weights = {
     for cat in active
 }
 
-# --- Maximums (new!) ---
 st.sidebar.header("Category Maximums")
 max_scores = {}
 for cat in active:
-    # only use CSV max in wide-mode if <cat>_maximum truly exists
     if mode == "wide" and f"{cat}_maximum" in df.columns:
         max_scores[cat] = None
         st.sidebar.write(f"{cat}: using CSV `<{cat}_maximum>`")
@@ -109,11 +101,10 @@ total_point = sum(w for c, w in weights.items() if c.lower() != "extra credit")
 def weighted_score(raw, maximum, weight):
     return (raw / maximum) * weight if maximum else 0
 
-# --- Compute results ---
 results = []
 
 if mode == "long":
-    # group by student
+    
     for student, grp in df.groupby(name_col):
         point_achieved = ec_total = 0.0
         detail = []
@@ -123,7 +114,7 @@ if mode == "long":
                 continue
 
             raw = row[raw_col]
-            mx  = max_scores[cat]      # always from sidebar in long-mode
+            mx  = max_scores[cat]      
             w   = weights.get(cat, 0)
             pts = weighted_score(raw, mx, w)
 
@@ -150,7 +141,7 @@ if mode == "long":
             "Details":          detail
         })
 
-else:  # wide mode
+else:  
     for _, row in df.iterrows():
         student = row[name_col]
         point_achieved = ec_total = 0.0
@@ -161,7 +152,6 @@ else:  # wide mode
                 continue
 
             raw = row[raw_col_name]
-            # CSV max if present and we set max_scores[cat] is None
             if f"{cat}_maximum" in df.columns:
                 mx = row[f"{cat}_maximum"]
             else:
@@ -193,13 +183,11 @@ else:  # wide mode
             "Details":          detail
         })
 
-# --- Search & reorder ---
 search_term = st.text_input("🔍 Search student", "")
 if search_term:
     search_lower = search_term.lower()
     results = sorted(results, key=lambda r: search_lower not in r["Name"].lower())
 
-# --- Summary table ---
 df_res  = pd.DataFrame(results)
 summary = df_res.drop(columns=["Details"], errors="ignore")
 
@@ -208,7 +196,6 @@ if "Name" in summary.columns:
     summary = summary.set_index("Name")
 st.dataframe(summary)
 
-# --- Download all details ---
 all_details = []
 for r in results:
     for d in r["Details"]:
@@ -225,7 +212,6 @@ st.download_button(
     key="download_all_details"
 )
 
-# --- Per-student breakdowns ---
 for idx, row in enumerate(results):
     with st.expander(f"🔍 {row['Name']}'s Breakdown"):
         detail_df = pd.DataFrame(row["Details"])
