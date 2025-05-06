@@ -3,10 +3,8 @@ import pandas as pd
 def weighted_score(raw, maximum, weight):
     return (raw / maximum) * weight if maximum else 0
 
-# Read the CSV
 df = pd.read_csv('grades.csv')
 
-# Define weight for each category
 weights = {
     'HW First Half': 40,
     'Quiz First Half': 60,
@@ -21,7 +19,6 @@ weights = {
 
 categories = list(weights.keys())
 
-# Calculate and print scores per student
 for _, row in df.iterrows():
     name = row['Name']
     total = 0

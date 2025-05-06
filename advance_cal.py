@@ -9,7 +9,6 @@ st.set_page_config(
 st.title("🎓 Grade Calculator")
 st.markdown("Upload either a **long** or **wide** CSV; tweak weights in the sidebar; see per-student breakdowns.")
 
-# --- Upload & initial read ---
 uploaded = st.file_uploader("Upload grades CSV", type="csv")
 if not uploaded:
     st.info("Awaiting CSV upload…")
@@ -17,7 +16,6 @@ if not uploaded:
 
 df = pd.read_csv(uploaded)
 
-# --- Detect mode & allow column mapping ---
 long_cols = {'Name','Category','raw','maximum'}
 if long_cols.issubset(df.columns):
     mode = 'long'
@@ -31,7 +29,6 @@ else:
     )
     st.stop()
 
-# Let user remap columns in case they have different headers
 with st.sidebar.expander("🔧 Column mapping", expanded=False):
     if mode == 'long':
         name_col    = st.selectbox("Student name column",  df.columns.tolist(), index=df.columns.get_loc('Name'))
@@ -39,10 +36,8 @@ with st.sidebar.expander("🔧 Column mapping", expanded=False):
         raw_col     = st.selectbox("Raw score column",     df.columns.tolist(), index=df.columns.get_loc('raw'))
         max_col     = st.selectbox("Max score column",     df.columns.tolist(), index=df.columns.get_loc('maximum'))
     else:
-        # for wide mode we only need the student name column
         name_col = st.selectbox("Student name column", df.columns.tolist(), index=df.columns.get_loc('Name') if 'Name' in df.columns else 0)
 
-# --- Build list of file-derived categories ---
 if mode == 'long':
     file_cats = sorted(df[cat_col].unique())
 else:
@@ -52,7 +47,6 @@ else:
         if cat.endswith('_raw')
     )
 
-# --- Manage custom categories in session_state ---
 if 'custom_cats' not in st.session_state:
     st.session_state['custom_cats'] = []
 
@@ -68,27 +62,22 @@ with st.sidebar.expander("➕ Add a custom category", expanded=False):
 
 all_categories = file_cats + st.session_state['custom_cats']
 
-# --- Let user pick which categories to include/exclude ---
 active = st.sidebar.multiselect(
     "✅ Active categories",
     options=all_categories,
     default=all_categories
 )
 
-# --- Dynamic weight inputs ---
 st.sidebar.header("Category Weights")
 weights = {}
 for cat in active:
     weights[cat] = st.sidebar.number_input(f"{cat} weight", min_value=0.0, value=40.0 if cat not in file_cats else 0.0, step=1.0, key=f"w_{cat}")
 
-# Separate extra-credit denominator
 core_denominator = sum(w for cat,w in weights.items() if cat.lower() != 'extra credit')
 
-# --- Scoring helper ---
 def weighted_score(raw, maximum, weight):
     return (raw / maximum) * weight if maximum else 0
 
-# --- Compute results ---
 results = []
 if mode == 'long':
     for student, grp in df.groupby(name_col):
@@ -123,7 +112,7 @@ if mode == 'long':
             'Details':          detail
         })
 else:
-    # wide mode
+    
     for _, row in df.iterrows():
         student = row.get(name_col, '')
         core_total = ec_total = 0.0
@@ -156,7 +145,6 @@ else:
             'Details':          detail
         })
 
-# --- Display ---
 df_res  = pd.DataFrame(results)
 summary = df_res.drop(columns=['Details'], errors='ignore')
 
