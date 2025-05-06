@@ -1,4 +1,3 @@
-# app.py
 import streamlit as st
 import pandas as pd
 
@@ -10,7 +9,6 @@ st.set_page_config(
 st.title("🎓 Grade Calculator")
 st.markdown("Upload either a **long** or **wide** CSV; tweak weights in the sidebar; see per-student breakdowns.")
 
-# — Sidebar: weights input —
 st.sidebar.header("Category Weights")
 default_weights = {
     'HW First Half':   40,
@@ -28,7 +26,6 @@ weights = {
     for cat, w in default_weights.items()
 }
 
-# — File uploader —
 uploaded = st.file_uploader("Upload grades CSV", type="csv")
 if not uploaded:
     st.info("Awaiting CSV upload…")
@@ -36,7 +33,6 @@ if not uploaded:
 
 df = pd.read_csv(uploaded)
 
-# — Detect long vs wide format —
 long_cols = {'Name','Category','raw','maximum'}
 if long_cols.issubset(df.columns):
     mode = 'long'
@@ -50,7 +46,6 @@ else:
     )
     st.stop()
 
-# — Common setup —
 def weighted_score(raw, maximum, weight):
     return (raw / maximum) * weight if maximum else 0
 
@@ -59,7 +54,6 @@ core_denominator = sum(w for cat, w in weights.items() if cat != 'Extra Credit')
 results = []
 
 if mode == 'long':
-    # process long-form
     for student, grp in df.groupby('Name'):
         core_total = ec_total = 0.0
         detail = []
@@ -90,8 +84,6 @@ if mode == 'long':
         })
 
 else:
-    # process wide-form
-    # determine which categories are actually in your file
     cats_present = [
         cat for cat in weights
         if f"{cat}_raw" in df.columns and f"{cat}_maximum" in df.columns
