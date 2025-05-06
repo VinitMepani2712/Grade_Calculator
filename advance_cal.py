@@ -35,7 +35,7 @@ else:
 # — Column mapping —
 with st.sidebar.expander("🔧 Column mapping", expanded=False):
     if mode == 'long':
-        name_col = st.selectbox("Student name column",  df.columns, index=df.columns.get_loc('Name'))
+        name_col = st.selectbox("Student name column", df.columns, index=df.columns.get_loc('Name'))
         cat_col  = st.selectbox("Category column",      df.columns, index=df.columns.get_loc('Category'))
         raw_col  = st.selectbox("Raw score column",     df.columns, index=df.columns.get_loc('raw'))
         max_col  = st.selectbox("Max score column",     df.columns, index=df.columns.get_loc('maximum'))
@@ -72,25 +72,26 @@ active = st.sidebar.multiselect("✅ Active categories", options=all_categories,
 # — Weights —
 st.sidebar.header("Category Weights")
 weights = {
-    cat: st.sidebar.number_input(f"{cat} weight", min_value=0.0, value=40.0 if cat not in file_cats else 0.0, step=1.0, key=f"w_{cat}")
+    cat: st.sidebar.number_input(f"{cat} weight",
+                                 min_value=0.0,
+                                 value=40.0 if cat not in file_cats else 0.0,
+                                 step=1.0,
+                                 key=f"w_{cat}")
     for cat in active
 }
 
-# — Maximums (new!) —
+# — Maximums (fixed!) —
 st.sidebar.header("Category Maximums")
-# we'll collect a default max for each category if CSV has none
 max_scores = {}
 for cat in active:
     csv_has_max = (
-        (mode == 'long' and max_col in df.columns) or
+        (mode == 'long' and cat in file_cats) or
         (mode == 'wide' and f"{cat}_maximum" in df.columns)
     )
     if csv_has_max:
-        # mark as None to signal “take from CSV”
         max_scores[cat] = None
         st.sidebar.write(f"{cat}: using CSV maximum")
     else:
-        # ask user
         max_scores[cat] = st.sidebar.number_input(
             f"{cat} total points",
             min_value=0.0,
@@ -99,15 +100,15 @@ for cat in active:
             key=f"maxinp_{cat}"
         )
 
-core_denominator = sum(w for c,w in weights.items() if c.lower() != 'extra credit')
+core_denominator = sum(w for c, w in weights.items() if c.lower() != 'extra credit')
 
 def weighted_score(raw, maximum, weight):
     return (raw / maximum) * weight if maximum else 0
 
 results = []
 
+# compute student results
 if mode == 'long':
-    # long form: each row has its own maximum, or we use user-specified max
     for student, grp in df.groupby(name_col):
         core_total = ec_total = 0.0
         detail = []
@@ -116,9 +117,8 @@ if mode == 'long':
             if cat not in active:
                 continue
             raw = row[raw_col]
-            # determine maximum: CSV value or sidebar entry
-            mx = row[max_col] if max_col in df.columns and max_scores.get(cat) is None else max_scores[cat]
-            w  = weights.get(cat, 0)
+            mx  = row[max_col] if max_scores.get(cat) is None else max_scores[cat]
+            w   = weights.get(cat, 0)
             pts = weighted_score(raw, mx, w)
             if cat.lower() == 'extra credit':
                 ec_total += pts
@@ -140,9 +140,7 @@ if mode == 'long':
             'Overall % (core)': f"{overall_pct:.2f}%",
             'Details':          detail
         })
-
 else:
-    # wide form: one row per student
     for _, row in df.iterrows():
         student = row.get(name_col, '')
         core_total = ec_total = 0.0
@@ -153,9 +151,10 @@ else:
             if raw_col_name not in df.columns:
                 continue
             raw = row[raw_col_name]
-            # pick CSV max if available, else sidebar
-            mx = row[csv_max_col] if csv_max_col in df.columns and max_scores.get(cat) is None else max_scores[cat]
-            w  = weights.get(cat, 0)
+            mx  = (row[csv_max_col]
+                   if max_scores.get(cat) is None and csv_max_col in df.columns
+                   else max_scores[cat])
+            w   = weights.get(cat, 0)
             pts = weighted_score(raw, mx, w)
             if cat.lower() == 'extra credit':
                 ec_total += pts
@@ -178,7 +177,15 @@ else:
             'Details':          detail
         })
 
-# build summary DataFrame
+# — Search & reorder —
+search_term = st.text_input("🔍 Search student", "")
+if search_term:
+    search_lower = search_term.lower()
+    matches     = [r for r in results if search_lower in r['Name'].lower()]
+    non_matches = [r for r in results if search_lower not in r['Name'].lower()]
+    results = matches + non_matches
+
+# build summary
 df_res  = pd.DataFrame(results)
 summary = df_res.drop(columns=['Details'], errors='ignore')
 
@@ -187,11 +194,36 @@ if 'Name' in summary.columns:
     summary = summary.set_index('Name')
 else:
     st.warning("⚠️ Couldn’t find your mapped ‘Name’ column; showing all columns instead.")
-
 st.dataframe(summary)
 
-# per-student breakdowns
-for row in results:
+# # — Download all students summary —
+# csv_summary = df_res.to_csv(index=False)
+# st.download_button(
+#     label="📥 Download ALL students summary",
+#     data=csv_summary,
+#     file_name="all_students_summary.csv",
+#     mime="text/csv",
+#     key="download_all_summary"
+# )
+
+# — Download all students detailed breakdowns —
+all_details = []
+for r in results:
+    for d in r['Details']:
+        d_copy = d.copy()
+        d_copy['Name'] = r['Name']
+        all_details.append(d_copy)
+df_all_details = pd.DataFrame(all_details)
+csv_details = df_all_details.to_csv(index=False)
+st.download_button(
+    label="📥 Download ALL students details",
+    data=csv_details,
+    file_name="all_students_details.csv",
+    mime="text/csv",
+    key="download_all_details"
+)
+
+for idx, row in enumerate(results):
     student = row.get('Name', '')
     with st.expander(f"🔍 {student}'s Breakdown"):
         detail_df = pd.DataFrame(row.get('Details', []))
@@ -199,5 +231,14 @@ for row in results:
             for col in ['Raw','Max','Weight','Points Earned']:
                 detail_df[col] = detail_df[col].apply(lambda x: f"{float(x):.2f}")
             st.table(detail_df.set_index('Category'))
+
+            csv = pd.DataFrame(row['Details']).to_csv(index=False)
+            st.download_button(
+                label="📥 Download this student's breakdown",
+                data=csv,
+                file_name=f"{student.replace(' ', '_')}_breakdown.csv",
+                mime="text/csv",
+                key=f"download_{idx}_{student}"
+            )
         else:
             st.write("No detail rows to display.")
