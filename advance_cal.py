@@ -84,7 +84,7 @@ if "custom_cats" not in st.session_state:
     st.session_state.custom_cats = []
 with st.sidebar.expander("➕ Add a custom category", expanded=False):
     new_cat = st.text_input("New category name", key="new_cat")
-    new_w = st.number_input("Default weight", min_value=0.0, value=0.0, step=1.0, key="new_w")
+    new_w   = st.number_input("Default weight", min_value=0.0, value=0.0, step=1.0, key="new_w")
     if st.button("Add category"):
         if new_cat and new_cat not in file_cats and new_cat not in st.session_state.custom_cats:
             st.session_state.custom_cats.append(new_cat)
@@ -131,6 +131,50 @@ for cat in active:
 # — denominator for overall percentage —
 total_point = sum(w for c, w in weights.items() if c.lower() != "extra credit")
 
+# — default grade bounds (%) and (pts) —
+default_min_pct = {"A":95.0, "B+":90.0, "B":85.0, "C+":80.0, "C":70.0, "D":60.0, "F":0.0}
+default_max_pct = {"A":100.0,"B+":94.99,"B":89.99,"C+":84.99,"C":79.99,"D":69.99,"F":59.99}
+default_min_pts = {g: total_point * p/100 for g, p in default_min_pct.items()}
+default_max_pts = {g: total_point * p/100 for g, p in default_max_pct.items()}
+
+# — Letter-grade settings UI —
+grade_defs = {}
+with st.sidebar.expander("📝 Letter Grade Settings", expanded=False):
+    show_letter = st.checkbox("Show letter grades", key="show_letter")
+    grade_mode  = st.selectbox("Assign by", ["Percentage", "Points"], key="grade_mode")
+
+    if show_letter:
+        for letter in ["A","B+","B","C+","C","F"]:
+            min_key = f"{letter}_min"
+            max_key = f"{letter}_max"
+            col_low, col_high = st.columns(2)
+            if grade_mode == "Percentage":
+                with col_low:
+                    low = st.number_input(f"{letter} min %",   min_value=0.0, max_value=100.0,
+                                          value=default_min_pct[letter], key=min_key)
+                with col_high:
+                    high = st.number_input(f"{letter} max %",  min_value=0.0, max_value=100.0,
+                                           value=default_max_pct[letter], key=max_key)
+            else:  # Points
+                with col_low:
+                    low = st.number_input(f"{letter} min pts", min_value=0.0, max_value=total_point,
+                                          value=default_min_pts[letter], key=min_key)
+                with col_high:
+                    high = st.number_input(f"{letter} max pts",min_value=0.0, max_value=total_point,
+                                           value=default_max_pts[letter], key=max_key)
+
+            grade_defs[letter] = (low, high)
+
+def assign_grade(pct, pts):
+    if not show_letter:
+        return ""
+    val = pct if grade_mode == "Percentage" else pts
+    for letter in ["A","B+","B","C+","C","D","F"]:
+        low, high = grade_defs.get(letter, (None, None))
+        if low is not None and high is not None and low <= val <= high:
+            return letter
+    return ""
+
 def weighted_score(raw, maximum, weight):
     return (raw / maximum) * weight if maximum else 0
 
@@ -140,7 +184,6 @@ if mode == "long":
     for student, grp in df.groupby(st.session_state.name_col):
         point_achieved = ec_total = 0.0
         detail = []
-        # grab NetID if available
         netid_val = grp[netid_col].iloc[0] if netid_col else None
 
         for _, row in grp.iterrows():
@@ -148,8 +191,8 @@ if mode == "long":
             if cat not in active:
                 continue
             raw = row[st.session_state.raw_col]
-            mx = max_scores[cat]
-            w = weights.get(cat, 0)
+            mx  = max_scores[cat]
+            w   = weights.get(cat, 0)
             pts = weighted_score(raw, mx, w)
             if cat.lower() == "extra credit":
                 ec_total += pts
@@ -163,17 +206,19 @@ if mode == "long":
                 "Points Earned": round(pts, 2)
             })
 
-        overall_pct = (point_achieved / total_point * 100) if total_point else 0
+        overall_pct = (point_achieved / total_point * 100) if total_point else 0.0
         entry = {
             "Name":             student,
             "Point Achieved":   round(point_achieved, 2),
             "Extra Credit":     round(ec_total, 2),
             "Total Point":      total_point,
-            "Overall % (core)": f"{overall_pct:.2f}%",
-            "Details":          detail
+            "Overall % (core)": f"{overall_pct:.2f}%"
         }
         if netid_col:
             entry["NetID"] = netid_val
+        if show_letter:
+            entry["Grade"] = assign_grade(overall_pct, point_achieved)
+        entry["Details"] = detail
         results.append(entry)
 
 else:
@@ -184,12 +229,12 @@ else:
         netid_val = row[netid_col] if netid_col else None
 
         for cat in active:
-            raw_col = f"{cat}_raw"
-            if raw_col not in df.columns:
+            raw_col_name = f"{cat}_raw"
+            if raw_col_name not in df.columns:
                 continue
-            raw = row[raw_col]
-            mx = row[f"{cat}_maximum"] if f"{cat}_maximum" in row else max_scores[cat]
-            w = weights.get(cat, 0)
+            raw = row[raw_col_name]
+            mx  = row.get(f"{cat}_maximum", max_scores[cat])
+            w   = weights.get(cat, 0)
             pts = weighted_score(raw, mx, w)
             if cat.lower() == "extra credit":
                 ec_total += pts
@@ -203,17 +248,19 @@ else:
                 "Points Earned": round(pts, 2)
             })
 
-        overall_pct = (point_achieved / total_point * 100) if total_point else 0
+        overall_pct = (point_achieved / total_point * 100) if total_point else 0.0
         entry = {
             "Name":             student,
             "Point Achieved":   round(point_achieved, 2),
             "Extra Credit":     round(ec_total, 2),
             "Total Point":      total_point,
-            "Overall % (core)": f"{overall_pct:.2f}%",
-            "Details":          detail
+            "Overall % (core)": f"{overall_pct:.2f}%"
         }
         if netid_col:
             entry["NetID"] = netid_val
+        if show_letter:
+            entry["Grade"] = assign_grade(overall_pct, point_achieved)
+        entry["Details"] = detail
         results.append(entry)
 
 # — optional search —
