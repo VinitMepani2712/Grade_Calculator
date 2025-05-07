@@ -15,20 +15,26 @@ uploaded = st.file_uploader(
     on_change=_clear_df
 )
 
+# — load or reuse the dataframe —
 if "df" not in st.session_state:
     if not uploaded:
         st.info("Awaiting CSV upload…")
         st.stop()
     st.session_state.df = pd.read_csv(uploaded)
-
 df = st.session_state.df
 
+# — drop blank/unnamed columns —
 df = df.loc[:, [c for c in df.columns if str(c).strip() and not str(c).startswith("Unnamed")]]
 
+# — require a Name column —
 if "Name" not in df.columns:
     st.error(" CSV must include a ‘Name’ column.")
     st.stop()
 
+# — detect NetID column (case-insensitive) —
+netid_col = next((c for c in df.columns if c.lower() == "netid"), None)
+
+# — determine mode —
 long_cols = {"Name", "Category", "raw"}
 if long_cols.issubset(df.columns):
     mode = "long"
@@ -37,6 +43,7 @@ elif any(c.endswith("_raw") for c in df.columns):
 else:
     mode = "raw-only"
 
+# — sidebar: column mapping for long vs wide/raw-only —
 with st.sidebar.expander("🔧 Column mapping", expanded=False):
     if mode == "long":
         name_col = st.selectbox(
@@ -65,11 +72,12 @@ with st.sidebar.expander("🔧 Column mapping", expanded=False):
             key="name_col"
         )
 
+# — gather categories from file and custom additions —
 if mode == "long":
     file_cats = sorted(df[st.session_state.cat_col].dropna().unique())
 elif mode == "wide":
     file_cats = sorted(c[:-4] for c in df.columns if c.endswith("_raw"))
-else:  
+else:
     file_cats = [c for c in df.columns if c != st.session_state.name_col]
 
 if "custom_cats" not in st.session_state:
@@ -85,7 +93,6 @@ with st.sidebar.expander("➕ Add a custom category", expanded=False):
             st.warning("Provide a unique, non-empty name.")
 
 all_categories = file_cats + st.session_state.custom_cats
-
 active = st.sidebar.multiselect(
     " Active categories",
     options=all_categories,
@@ -93,6 +100,7 @@ active = st.sidebar.multiselect(
     key="active"
 )
 
+# — weights & maximums UI —
 st.sidebar.header("Category Weights")
 weights = {
     cat: st.sidebar.number_input(
@@ -120,16 +128,21 @@ for cat in active:
             key=f"max_{cat}"
         )
 
+# — denominator for overall percentage —
 total_point = sum(w for c, w in weights.items() if c.lower() != "extra credit")
 
 def weighted_score(raw, maximum, weight):
     return (raw / maximum) * weight if maximum else 0
 
+# — compute results —
 results = []
 if mode == "long":
     for student, grp in df.groupby(st.session_state.name_col):
         point_achieved = ec_total = 0.0
         detail = []
+        # grab NetID if available
+        netid_val = grp[netid_col].iloc[0] if netid_col else None
+
         for _, row in grp.iterrows():
             cat = row[st.session_state.cat_col]
             if cat not in active:
@@ -149,29 +162,33 @@ if mode == "long":
                 "Weight":        w,
                 "Points Earned": round(pts, 2)
             })
+
         overall_pct = (point_achieved / total_point * 100) if total_point else 0
-        results.append({
+        entry = {
             "Name":             student,
             "Point Achieved":   round(point_achieved, 2),
             "Extra Credit":     round(ec_total, 2),
             "Total Point":      total_point,
             "Overall % (core)": f"{overall_pct:.2f}%",
-                "Details":          detail
-        })
+            "Details":          detail
+        }
+        if netid_col:
+            entry["NetID"] = netid_val
+        results.append(entry)
+
 else:
     for _, row in df.iterrows():
         student = row[st.session_state.name_col]
         point_achieved = ec_total = 0.0
         detail = []
+        netid_val = row[netid_col] if netid_col else None
+
         for cat in active:
             raw_col = f"{cat}_raw"
             if raw_col not in df.columns:
                 continue
             raw = row[raw_col]
-            if f"{cat}_maximum" in df.columns:
-                mx = row[f"{cat}_maximum"]
-            else:
-                mx = max_scores[cat]
+            mx = row[f"{cat}_maximum"] if f"{cat}_maximum" in row else max_scores[cat]
             w = weights.get(cat, 0)
             pts = weighted_score(raw, mx, w)
             if cat.lower() == "extra credit":
@@ -185,21 +202,29 @@ else:
                 "Weight":        w,
                 "Points Earned": round(pts, 2)
             })
+
         overall_pct = (point_achieved / total_point * 100) if total_point else 0
-        results.append({
+        entry = {
             "Name":             student,
             "Point Achieved":   round(point_achieved, 2),
             "Extra Credit":     round(ec_total, 2),
             "Total Point":      total_point,
             "Overall % (core)": f"{overall_pct:.2f}%",
             "Details":          detail
-        })
+        }
+        if netid_col:
+            entry["NetID"] = netid_val
+        results.append(entry)
 
+# — optional search —
 search_term = st.text_input("🔍 Search student", key="search_term")
 if search_term:
-    results = sorted(results,
-                     key=lambda r: search_term.lower() not in r["Name"].lower())
+    results = sorted(
+        results,
+        key=lambda r: search_term.lower() not in r["Name"].lower()
+    )
 
+# — build summary DataFrame —
 df_res = pd.DataFrame(results)
 summary = df_res.drop(columns=["Details"], errors="ignore")
 if "Name" in summary.columns:
@@ -208,6 +233,7 @@ if "Name" in summary.columns:
 st.subheader("📋 Summary")
 st.dataframe(summary)
 
+# — per-student breakdowns —
 for idx, row in enumerate(results):
     with st.expander(f"🔍 {row['Name']}'s Breakdown"):
         detail_df = pd.DataFrame(row["Details"])
