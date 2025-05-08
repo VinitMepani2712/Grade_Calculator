@@ -128,12 +128,17 @@ for cat in active:
             key=f"max_{cat}"
         )
 
+# — include-extra-credit option (does NOT change total_point) —
+include_ec = st.sidebar.checkbox(
+    "Include extra credit in total achieved", value=False, key="include_ec"
+)
+
 # — denominator for overall percentage —
 total_point = sum(w for c, w in weights.items() if c.lower() != "extra credit")
 
 # — default grade bounds (%) and (pts) —
-default_min_pct = {"A":95.0, "B+":90.0, "B":85.0, "C+":80.0, "C":70.0, "D":60.0, "F":0.0}
-default_max_pct = {"A":100.0,"B+":94.99,"B":89.99,"C+":84.99,"C":79.99,"D":69.99,"F":59.99}
+default_min_pct = {"A":95.0, "B+":90.0, "B":85.0, "C+":80.0, "C":70.0, "F":0.0}
+default_max_pct = {"A":100.0,"B+":94.99,"B":89.99,"C+":84.99,"C":79.99,"F":69.99}
 default_min_pts = {g: total_point * p/100 for g, p in default_min_pct.items()}
 default_max_pts = {g: total_point * p/100 for g, p in default_max_pct.items()}
 
@@ -150,26 +155,33 @@ with st.sidebar.expander("📝 Letter Grade Settings", expanded=False):
             col_low, col_high = st.columns(2)
             if grade_mode == "Percentage":
                 with col_low:
-                    low = st.number_input(f"{letter} min %",   min_value=0.0, max_value=100.0,
-                                          value=default_min_pct[letter], key=min_key)
+                    low = st.number_input(
+                        f"{letter} min %", min_value=0.0, max_value=100.0,
+                        value=default_min_pct[letter], key=min_key
+                    )
                 with col_high:
-                    high = st.number_input(f"{letter} max %",  min_value=0.0, max_value=100.0,
-                                           value=default_max_pct[letter], key=max_key)
-            else:  # Points
+                    high = st.number_input(
+                        f"{letter} max %", min_value=0.0, max_value=100.0,
+                        value=default_max_pct[letter], key=max_key
+                    )
+            else:
                 with col_low:
-                    low = st.number_input(f"{letter} min pts", min_value=0.0, max_value=total_point,
-                                          value=default_min_pts[letter], key=min_key)
+                    low = st.number_input(
+                        f"{letter} min pts", min_value=0.0, max_value=total_point,
+                        value=default_min_pts[letter], key=min_key
+                    )
                 with col_high:
-                    high = st.number_input(f"{letter} max pts",min_value=0.0, max_value=total_point,
-                                           value=default_max_pts[letter], key=max_key)
-
+                    high = st.number_input(
+                        f"{letter} max pts", min_value=0.0, max_value=total_point,
+                        value=default_max_pts[letter], key=max_key
+                    )
             grade_defs[letter] = (low, high)
 
 def assign_grade(pct, pts):
     if not show_letter:
         return ""
     val = pct if grade_mode == "Percentage" else pts
-    for letter in ["A","B+","B","C+","C","D","F"]:
+    for letter in ["A","B+","B","C+","C","F"]:
         low, high = grade_defs.get(letter, (None, None))
         if low is not None and high is not None and low <= val <= high:
             return letter
@@ -206,10 +218,13 @@ if mode == "long":
                 "Points Earned": round(pts, 2)
             })
 
-        overall_pct = (point_achieved / total_point * 100) if total_point else 0.0
+        # apply include_ec checkbox
+        total_achieved = point_achieved + ec_total if include_ec else point_achieved
+        overall_pct    = (point_achieved / total_point * 100) if total_point else 0.0
+
         entry = {
             "Name":             student,
-            "Point Achieved":   round(point_achieved, 2),
+            "Point Achieved":   round(total_achieved, 2),
             "Extra Credit":     round(ec_total, 2),
             "Total Point":      total_point,
             "Overall % (core)": f"{overall_pct:.2f}%"
@@ -217,7 +232,7 @@ if mode == "long":
         if netid_col:
             entry["NetID"] = netid_val
         if show_letter:
-            entry["Grade"] = assign_grade(overall_pct, point_achieved)
+            entry["Grade"] = assign_grade(overall_pct, total_achieved)
         entry["Details"] = detail
         results.append(entry)
 
@@ -248,10 +263,12 @@ else:
                 "Points Earned": round(pts, 2)
             })
 
-        overall_pct = (point_achieved / total_point * 100) if total_point else 0.0
+        total_achieved = point_achieved + ec_total if include_ec else point_achieved
+        overall_pct    = (point_achieved / total_point * 100) if total_point else 0.0
+
         entry = {
             "Name":             student,
-            "Point Achieved":   round(point_achieved, 2),
+            "Point Achieved":   round(total_achieved, 2),
             "Extra Credit":     round(ec_total, 2),
             "Total Point":      total_point,
             "Overall % (core)": f"{overall_pct:.2f}%"
@@ -259,11 +276,11 @@ else:
         if netid_col:
             entry["NetID"] = netid_val
         if show_letter:
-            entry["Grade"] = assign_grade(overall_pct, point_achieved)
+            entry["Grade"] = assign_grade(overall_pct, total_achieved)
         entry["Details"] = detail
         results.append(entry)
 
-# — optional search —
+# — optional search —  
 search_term = st.text_input("🔍 Search student", key="search_term")
 if search_term:
     results = sorted(
@@ -271,7 +288,7 @@ if search_term:
         key=lambda r: search_term.lower() not in r["Name"].lower()
     )
 
-# — build summary DataFrame —
+# — build summary DataFrame —  
 df_res = pd.DataFrame(results)
 summary = df_res.drop(columns=["Details"], errors="ignore")
 if "Name" in summary.columns:
@@ -280,7 +297,7 @@ if "Name" in summary.columns:
 st.subheader("📋 Summary")
 st.dataframe(summary)
 
-# — per-student breakdowns —
+# — per-student breakdowns —  
 for idx, row in enumerate(results):
     with st.expander(f"🔍 {row['Name']}'s Breakdown"):
         detail_df = pd.DataFrame(row["Details"])
