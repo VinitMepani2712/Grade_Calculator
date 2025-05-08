@@ -53,7 +53,6 @@ uploaded = st.file_uploader(
     on_change=_clear_df
 )
 
-# — load or reuse the dataframe —
 if "df" not in st.session_state:
     if not uploaded:
         st.info("Awaiting CSV upload…")
@@ -61,18 +60,14 @@ if "df" not in st.session_state:
     st.session_state.df = pd.read_csv(uploaded)
 df = st.session_state.df
 
-# — drop blank/unnamed columns —
 df = df.loc[:, [c for c in df.columns if str(c).strip() and not str(c).startswith("Unnamed")]]
 
-# — require a Name column —
 if "Name" not in df.columns:
     st.error(" CSV must include a ‘Name’ column.")
     st.stop()
 
-# — detect NetID column (case-insensitive) —
 netid_col = next((c for c in df.columns if c.lower() == "netid"), None)
 
-# — determine mode —
 long_cols = {"Name", "Category", "raw"}
 if long_cols.issubset(df.columns):
     mode = "long"
@@ -81,7 +76,6 @@ elif any(c.endswith("_raw") for c in df.columns):
 else:
     mode = "raw-only"
 
-# — sidebar: column mapping for long vs wide/raw-only —
 with st.sidebar.expander("🔧 Column mapping", expanded=False):
     if mode == "long":
         name_col = st.selectbox(
@@ -110,7 +104,6 @@ with st.sidebar.expander("🔧 Column mapping", expanded=False):
             key="name_col"
         )
 
-# — gather categories from file and custom additions —
 if mode == "long":
     file_cats = sorted(df[st.session_state.cat_col].dropna().unique())
 elif mode == "wide":
@@ -138,7 +131,6 @@ active = st.sidebar.multiselect(
     key="active"
 )
 
-# — weights & maximums UI —
 st.sidebar.header("Category Weights")
 weights = {
     cat: st.sidebar.number_input(
@@ -166,21 +158,17 @@ for cat in active:
             key=f"max_{cat}"
         )
 
-# — include-extra-credit option (does NOT change total_point) —
 include_ec = st.sidebar.checkbox(
     "Include extra credit in total achieved", value=False, key="include_ec"
 )
 
-# — denominator for overall percentage —
 total_point = sum(w for c, w in weights.items() if c.lower() != "extra credit")
 
-# — default grade bounds (%) and (pts) —
 default_min_pct = {"A":95.0, "B+":90.0, "B":85.0, "C+":80.0, "C":70.0, "F":0.0}
 default_max_pct = {"A":100.0,"B+":94.99,"B":89.99,"C+":84.99,"C":79.99,"F":69.99}
 default_min_pts = {g: total_point * p/100 for g, p in default_min_pct.items()}
 default_max_pts = {g: total_point * p/100 for g, p in default_max_pct.items()}
 
-# — Letter-grade settings UI —
 grade_defs = {}
 with st.sidebar.expander("📝 Letter Grade Settings", expanded=False):
     show_letter = st.checkbox("Show letter grades", key="show_letter")
@@ -228,7 +216,6 @@ def assign_grade(pct, pts):
 def weighted_score(raw, maximum, weight):
     return (raw / maximum) * weight if maximum else 0
 
-# — compute results —
 results = []
 if mode == "long":
     for student, grp in df.groupby(st.session_state.name_col):
@@ -317,7 +304,6 @@ else:
         entry["Details"] = detail
         results.append(entry)
 
-# — optional search —
 search_term = st.text_input("🔍 Search student", key="search_term")
 if search_term:
     results = sorted(
@@ -325,7 +311,6 @@ if search_term:
         key=lambda r: search_term.lower() not in r["Name"].lower()
     )
 
-# — build summary DataFrame —
 df_res = pd.DataFrame(results)
 summary = df_res.drop(columns=["Details"], errors="ignore")
 if "Name" in summary.columns:
@@ -334,7 +319,6 @@ if "Name" in summary.columns:
 st.subheader("📋 Summary")
 st.dataframe(summary)
 
-# — per-student breakdowns —
 for idx, row in enumerate(results):
     with st.expander(f"🔍 {row['Name']}'s Breakdown"):
         detail_df = pd.DataFrame(row["Details"])
