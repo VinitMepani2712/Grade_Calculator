@@ -5,6 +5,44 @@ st.set_page_config(page_title="Grade Calculator", layout="wide")
 st.title("🎓 Grade Calculator")
 st.markdown("Upload a CSV (long, wide, or raw-only). Blank/Unnamed columns are ignored.")
 
+# — example CSV formats for users to copy/paste/download —
+with st.expander("📄 Example CSV formats", expanded=False):
+    st.markdown("**1. Wide-format** (uses `_raw`/`_maximum` columns)")
+    st.code(
+        """\
+Name,NetID,HW1_raw,HW1_maximum,Quiz1_raw,Quiz1_maximum,Final_raw,Final_maximum,Extra Credit_raw
+Alice,a123,80,100,18,25,150,180,5
+Bob,b456,92,100,22,25,170,180,2
+""",
+        language="csv"
+    )
+
+    st.markdown("**2. Long-format** (one row per student × category)")
+    st.code(
+        """\
+Name,Category,raw,maximum,NetID
+Alice,HW1,80,100,a123
+Alice,Quiz1,18,25,a123
+Alice,Final,150,180,a123
+Alice,Extra Credit,5,10,a123
+Bob,HW1,92,100,b456
+Bob,Quiz1,22,25,b456
+Bob,Final,170,180,b456
+Bob,Extra Credit,2,10,b456
+""",
+        language="csv"
+    )
+
+    st.markdown("**3. Raw-only** (each column minus `Name` is a category)")
+    st.code(
+        """\
+Name,HW1,Quiz1,Final,Extra Credit , 
+Alice,80,18,150,5
+Bob,92,22,170,2
+""",
+        language="csv"
+    )
+
 def _clear_df():
     st.session_state.pop("df", None)
 
@@ -218,7 +256,6 @@ if mode == "long":
                 "Points Earned": round(pts, 2)
             })
 
-        # apply include_ec checkbox
         total_achieved = point_achieved + ec_total if include_ec else point_achieved
         overall_pct    = (point_achieved / total_point * 100) if total_point else 0.0
 
@@ -280,7 +317,7 @@ else:
         entry["Details"] = detail
         results.append(entry)
 
-# — optional search —  
+# — optional search —
 search_term = st.text_input("🔍 Search student", key="search_term")
 if search_term:
     results = sorted(
@@ -288,7 +325,7 @@ if search_term:
         key=lambda r: search_term.lower() not in r["Name"].lower()
     )
 
-# — build summary DataFrame —  
+# — build summary DataFrame —
 df_res = pd.DataFrame(results)
 summary = df_res.drop(columns=["Details"], errors="ignore")
 if "Name" in summary.columns:
@@ -297,7 +334,7 @@ if "Name" in summary.columns:
 st.subheader("📋 Summary")
 st.dataframe(summary)
 
-# — per-student breakdowns —  
+# — per-student breakdowns —
 for idx, row in enumerate(results):
     with st.expander(f"🔍 {row['Name']}'s Breakdown"):
         detail_df = pd.DataFrame(row["Details"])
