@@ -36,9 +36,9 @@ Kano,Extra Credit,2,10,b456
     st.markdown("**3. Raw-only** (each column minus `Name` is a category)")
     st.code(
         """\
-Name,HW1,Quiz1,Final,Extra Credit , 
-Vinit,80,18,150,5
-Kano,92,22,170,2
+Name,HW1,Quiz1,Final,Extra Credit,NetID
+Vinit,80,18,150,5,a123
+Kano,92,22,170,2,b456
 """,
         language="csv"
     )
