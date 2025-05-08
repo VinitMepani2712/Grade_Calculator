@@ -11,8 +11,8 @@ with st.expander("📄 Example CSV formats", expanded=False):
     st.code(
         """\
 Name,NetID,HW1_raw,HW1_maximum,Quiz1_raw,Quiz1_maximum,Final_raw,Final_maximum,Extra Credit_raw
-Alice,a123,80,100,18,25,150,180,5
-Bob,b456,92,100,22,25,170,180,2
+Vinit,a123,80,100,18,25,150,180,5
+Kano,b456,92,100,22,25,170,180,2
 """,
         language="csv"
     )
@@ -21,14 +21,14 @@ Bob,b456,92,100,22,25,170,180,2
     st.code(
         """\
 Name,Category,raw,maximum,NetID
-Alice,HW1,80,100,a123
-Alice,Quiz1,18,25,a123
-Alice,Final,150,180,a123
-Alice,Extra Credit,5,10,a123
-Bob,HW1,92,100,b456
-Bob,Quiz1,22,25,b456
-Bob,Final,170,180,b456
-Bob,Extra Credit,2,10,b456
+Vinit,HW1,80,100,a123
+Vinit,Quiz1,18,25,a123
+Vinit,Final,150,180,a123
+Vinit,Extra Credit,5,10,a123
+Kano,HW1,92,100,b456
+Kano,Quiz1,22,25,b456
+Kano,Final,170,180,b456
+Kano,Extra Credit,2,10,b456
 """,
         language="csv"
     )
@@ -37,8 +37,8 @@ Bob,Extra Credit,2,10,b456
     st.code(
         """\
 Name,HW1,Quiz1,Final,Extra Credit , 
-Alice,80,18,150,5
-Bob,92,22,170,2
+Vinit,80,18,150,5
+Kano,92,22,170,2
 """,
         language="csv"
     )
