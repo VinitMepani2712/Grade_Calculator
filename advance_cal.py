@@ -5,7 +5,6 @@ st.set_page_config(page_title="Grade Calculator", layout="wide")
 st.title("🎓 Grade Calculator")
 st.markdown("Upload a CSV (long, wide, or raw-only). Blank/Unnamed columns are ignored.")
 
-# — example CSV formats for users to copy/paste/download —
 with st.expander("📄 Example CSV formats", expanded=False):
     st.markdown("**1. Wide-format** (uses `_raw`/`_maximum` columns)")
     st.code(
@@ -33,10 +32,10 @@ Kano,Extra Credit,2,10,b456
         language="csv"
     )
 
-    st.markdown("**3. Raw-only** (each column minus `Name` is a category)")
+    st.markdown("**3. Raw-only** (each column minus `Name` is a category , uses `_raw`)")
     st.code(
         """\
-Name,HW1,Quiz1,Final,Extra Credit,NetID
+Name,HW1_raw,Quiz1_raw,Final_raw,Extra_raw Credit_raw,NetID
 Vinit,80,18,150,5,a123
 Kano,92,22,170,2,b456
 """,
