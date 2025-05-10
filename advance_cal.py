@@ -25,7 +25,7 @@ Vinit,Quiz1,18,25,a123
 Vinit,Final,150,180,a123
 Vinit,Extra Credit,5,10,a123
 Kano,HW1,92,100,b456
-Kano,Quiz1,22,25,b456
+Kano,Quiz1,22,25,b456 
 Kano,Final,170,180,b456
 Kano,Extra Credit,2,10,b456
 """,
